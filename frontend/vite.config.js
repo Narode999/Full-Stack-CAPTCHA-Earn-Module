@@ -1,0 +1,19 @@
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    port: 5173,
+    host: '0.0.0.0',
+    // Proxy keeps the browser on a single origin, so there is no CORS
+    // preflight and no hard-coded backend URL baked into the bundle.
+    proxy: {
+      '/api': {
+        target: process.env.VITE_PROXY_TARGET || 'http://localhost:5000',
+        changeOrigin: true
+      }
+    }
+  }
+});
+

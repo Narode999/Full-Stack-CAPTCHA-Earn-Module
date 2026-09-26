@@ -1,0 +1,237 @@
+{
+  "info": {
+    "_postman_id": "veloop-captcha-earn",
+    "name": "VELoop - Captcha Earn",
+    "description": "CAPTCHA Earn module: login -> get CAPTCHA -> verify -> claim -> new CAPTCHA -> verify wrong -> balance -> history, plus negative tests. {{token}}, {{challengeId}}, {{captchaText}}, {{signature}} and {{wrongOption}} are captured automatically by the test scripts - run requests 01-11 in order.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000" },
+    { "key": "email", "value": "demo@veloop.test" },
+    { "key": "password", "value": "Demo@12345" },
+    { "key": "token", "value": "" },
+    { "key": "challengeId", "value": "" },
+    { "key": "captchaText", "value": "" },
+    { "key": "signature", "value": "" },
+    { "key": "wrongOption", "value": "" }
+  ],
+  "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+  "item": [
+    {
+      "name": "01 Health",
+      "request": { "auth": { "type": "noauth" }, "method": "GET", "url": "{{baseUrl}}/api/health" }
+    },
+    {
+      "name": "02 Config (public)",
+      "request": { "auth": { "type": "noauth" }, "method": "GET", "url": "{{baseUrl}}/api/captcha/config" }
+    },
+    {
+      "name": "03 Login",
+      "event": [{ "listen": "test", "script": { "exec": [
+        "const j = pm.response.json();",
+        "pm.test('login 200', () => pm.response.to.have.status(200));",
+        "pm.environment.set('token', j.token);"
+      ] } }],
+      "request": {
+        "auth": { "type": "noauth" },
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\"email\":\"{{email}}\",\"password\":\"{{password}}\"}" },
+        "url": "{{baseUrl}}/api/auth/login"
+      }
+    },
+    {
+      "name": "04 Get Current CAPTCHA",
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('200', () => pm.response.to.have.status(200));",
+        "const c = pm.response.json().challenge;",
+        "pm.test('correctOption never exposed', () => pm.expect(c).to.not.have.property('correctOption'));",
+        "pm.test('exactly 4 unique options', () => { pm.expect(c.options.length).to.eql(4); pm.expect(new Set(c.options).size).to.eql(4); });",
+        "pm.environment.set('challengeId', c.challengeId);",
+        "pm.environment.set('captchaText', c.captchaText);",
+        "pm.environment.set('signature', c.signature);",
+        "pm.environment.set('wrongOption', c.options.find(o => o !== c.captchaText));"
+      ] } }],
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/captcha/current" }
+    },
+    {
+      "name": "05 Verify CORRECT",
+      "event": [{ "listen": "test", "script": { "exec": [
+        "const j = pm.response.json();",
+        "pm.test('200', () => pm.response.to.have.status(200));",
+        "pm.test('result CORRECT', () => pm.expect(j.result).to.eql('CORRECT'));",
+        "pm.test('reward is PENDING, wallet not yet credited', () => pm.expect(j.reward.status).to.eql('PENDING'));"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\"challengeId\":\"{{challengeId}}\",\"selectedOption\":\"{{captchaText}}\",\"signature\":\"{{signature}}\"}" },
+        "url": "{{baseUrl}}/api/captcha/verify"
+      }
+    },
+    {
+      "name": "06 Claim Reward",
+      "event": [{ "listen": "test", "script": { "exec": [
+        "const j = pm.response.json();",
+        "pm.test('200', () => pm.response.to.have.status(200));",
+        "pm.test('reward CLAIMED', () => pm.expect(j.reward.status).to.eql('CLAIMED'));"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\"challengeId\":\"{{challengeId}}\"}" },
+        "url": "{{baseUrl}}/api/captcha/claim"
+      }
+    },
+    {
+      "name": "07 New CAPTCHA",
+      "event": [{ "listen": "test", "script": { "exec": [
+        "const c = pm.response.json().challenge;",
+        "pm.environment.set('challengeId', c.challengeId);",
+        "pm.environment.set('captchaText', c.captchaText);",
+        "pm.environment.set('signature', c.signature);",
+        "pm.environment.set('wrongOption', c.options.find(o => o !== c.captchaText));"
+      ] } }],
+      "request": { "method": "POST", "url": "{{baseUrl}}/api/captcha/new" }
+    },
+    {
+      "name": "08 Verify WRONG (consolation)",
+      "event": [{ "listen": "test", "script": { "exec": [
+        "const j = pm.response.json();",
+        "pm.test('result WRONG', () => pm.expect(j.result).to.eql('WRONG'));",
+        "pm.test('consolation 0.5', () => pm.expect(j.reward.amount).to.eql(0.5));"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\"challengeId\":\"{{challengeId}}\",\"selectedOption\":\"{{wrongOption}}\",\"signature\":\"{{signature}}\"}" },
+        "url": "{{baseUrl}}/api/captcha/verify"
+      }
+    },
+    {
+      "name": "09 Decline (No Thanks)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\"challengeId\":\"{{challengeId}}\"}" },
+        "url": "{{baseUrl}}/api/captcha/decline"
+      }
+    },
+    { "name": "10 Gem Balance", "request": { "method": "GET", "url": "{{baseUrl}}/api/wallet/gems" } },
+    { "name": "11 CAPTCHA History", "request": { "method": "GET", "url": "{{baseUrl}}/api/captcha/history?limit=20" } },
+    { "name": "12 Gem Ledger", "request": { "method": "GET", "url": "{{baseUrl}}/api/wallet/transactions" } },
+
+    {
+      "name": "NEGATIVE TESTS",
+      "item": [
+        {
+          "name": "N1 Fake reward:100000 -> 400",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('400', () => pm.response.to.have.status(400));",
+            "pm.test('CLIENT_OVERRIDE_REJECTED', () => pm.expect(pm.response.json().code).to.eql('CLIENT_OVERRIDE_REJECTED'));"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"challengeId\":\"{{challengeId}}\",\"selectedOption\":\"{{captchaText}}\",\"signature\":\"{{signature}}\",\"reward\":100000}" },
+            "url": "{{baseUrl}}/api/captcha/verify"
+          }
+        },
+        {
+          "name": "N2 Fake isCorrect:true -> 400",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"challengeId\":\"{{challengeId}}\",\"selectedOption\":\"{{captchaText}}\",\"signature\":\"{{signature}}\",\"isCorrect\":true}" },
+            "url": "{{baseUrl}}/api/captcha/verify"
+          }
+        },
+        {
+          "name": "N3 Fake userId -> 400",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"challengeId\":\"{{challengeId}}\",\"selectedOption\":\"{{captchaText}}\",\"signature\":\"{{signature}}\",\"userId\":\"000000000000000000000000\"}" },
+            "url": "{{baseUrl}}/api/captcha/verify"
+          }
+        },
+        {
+          "name": "N4 Unknown challengeId -> 404",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"challengeId\":\"ch_does_not_exist\",\"selectedOption\":\"AAAAAA\",\"signature\":\"x\"}" },
+            "url": "{{baseUrl}}/api/captcha/verify"
+          }
+        },
+        {
+          "name": "N5 Tampered signature -> 403",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"challengeId\":\"{{challengeId}}\",\"selectedOption\":\"{{captchaText}}\",\"signature\":\"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\"}" },
+            "url": "{{baseUrl}}/api/captcha/verify"
+          }
+        },
+        {
+          "name": "N6 Option never offered -> 400",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"challengeId\":\"{{challengeId}}\",\"selectedOption\":\"ZZZZZZ\",\"signature\":\"{{signature}}\"}" },
+            "url": "{{baseUrl}}/api/captcha/verify"
+          }
+        },
+        {
+          "name": "N7 Missing fields -> 400",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{}" },
+            "url": "{{baseUrl}}/api/captcha/verify"
+          }
+        },
+        {
+          "name": "N8 Replay completed challenge -> 409",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"challengeId\":\"{{challengeId}}\",\"selectedOption\":\"{{captchaText}}\",\"signature\":\"{{signature}}\"}" },
+            "url": "{{baseUrl}}/api/captcha/verify"
+          }
+        },
+        {
+          "name": "N9 Duplicate claim -> 409",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"challengeId\":\"{{challengeId}}\"}" },
+            "url": "{{baseUrl}}/api/captcha/claim"
+          }
+        },
+        {
+          "name": "N10 Claim a declined reward -> 409",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"challengeId\":\"{{challengeId}}\"}" },
+            "url": "{{baseUrl}}/api/captcha/claim"
+          }
+        },
+        {
+          "name": "N11 No token -> 401",
+          "request": { "auth": { "type": "noauth" }, "method": "GET", "url": "{{baseUrl}}/api/captcha/current" }
+        },
+        {
+          "name": "N12 Forged token -> 401",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer not.a.real.token" }],
+            "url": "{{baseUrl}}/api/captcha/current"
+          }
+        }
+      ]
+    }
+  ]
+}

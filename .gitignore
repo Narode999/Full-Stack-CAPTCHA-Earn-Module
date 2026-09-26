@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Environment - never commit real secrets.
+# .env.example IS committed so others know what is required.
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+.idea/
+*.swp
+
+# Local scratch
+tools/
