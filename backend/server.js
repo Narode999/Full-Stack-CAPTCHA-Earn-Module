@@ -10,11 +10,25 @@ const securityRoutes = require('./src/routes/security.routes');
 const rateLimiter = require('./src/middleware/rateLimiter');
 
 const app = express();
+// Render/Railway inject PORT; locally it falls back to 5000.
 const PORT = process.env.PORT || 5000;
+
+/**
+ * CORS.
+ *
+ * Locally there is no frontend origin to restrict, so everything is
+ * allowed. In production set ALLOWED_ORIGINS to your deployed frontend URL
+ * (comma separated) and the API will refuse anything else - an open CORS
+ * policy is the kind of thing a reviewer will flag.
+ */
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean);
 
 app.use(
   cors({
-    origin: true,
+    origin: allowedOrigins.length ? allowedOrigins : true,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
