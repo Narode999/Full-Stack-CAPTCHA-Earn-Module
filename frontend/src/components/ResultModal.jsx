@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Check, X, Gem, ArrowRight, ShieldCheck, RefreshCcw } from 'lucide-react';
+import { Check, X, Gem, ArrowRight, ShieldCheck, RefreshCcw, Sparkles } from 'lucide-react';
 
 /**
  * Reward feedback screen (spec sections 21, 22, 29, 36).
