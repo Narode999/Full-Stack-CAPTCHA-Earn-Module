@@ -1,5 +1,12 @@
 # VELoop Rewards — CAPTCHA Earn Module
 
+[![CI](https://github.com/Narode999/Full-Stack-Captcha-Earn-Module/actions/workflows/ci.yml/badge.svg)](https://github.com/Narode999/Full-Stack-Captcha-Earn-Module/actions/workflows/ci.yml)
+[![Node](https://img.shields.io/badge/node-20%20%7C%2022-339933)](https://nodejs.org)
+[![React](https://img.shields.io/badge/react-18-61dafb)](https://react.dev)
+[![Express](https://img.shields.io/badge/express-4-000000)](https://expressjs.com)
+[![MongoDB](https://img.shields.io/badge/mongodb-8-47a248)](https://www.mongodb.com)
+[![Tests](https://img.shields.io/badge/tests-24%20passing-22c55e)](backend/tests/security.test.js)
+
 A production-ready MERN module where users solve a one-time CAPTCHA challenge to earn
 gems, built on **zero-frontend-trust** principles: the client can request a challenge and
 pick an option, but it has **zero influence** over whether it was correct or how much it is

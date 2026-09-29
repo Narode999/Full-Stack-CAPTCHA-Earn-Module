@@ -1,0 +1,76 @@
+# Runs the full stack on every push and pull request.
+#
+# The test suite needs a real MongoDB, so this spins one up in a service
+# container. Without this the badge below would just be a claim; with it,
+# a reviewer can see the tests actually pass on every commit.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node: [20, 22]
+
+    services:
+      mongodb:
+        image: mongo:7
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.runCommand({ping:1})'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      TEST_MONGO_URI: mongodb://127.0.0.1:27017/veloop_rewards_test
+      JWT_SECRET: ci-test-secret-not-used-in-production
+      SERVER_SECRET: ci-test-server-secret-not-used-in-production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Seed a clean test database
+        working-directory: backend
+        run: node -e "const m=require('mongoose');m.connect(process.env.TEST_MONGO_URI).then(async()=>{await m.connection.db.collection('gemtransactions').deleteMany({});console.log('test db ready');await m.disconnect();})"
+
+      - name: Run security test suite
+        working-directory: backend
+        run: node --test tests/security.test.js
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Production build
+        working-directory: frontend
+        run: npm run build
