@@ -1,0 +1,10 @@
+# Netlify SPA fallback.
+#
+# Vite copies everything in public/ into dist/, so this lands at dist/_redirects
+# and is picked up automatically at deploy time. Without it, refreshing a
+# client-side route such as /history or /security returns a 404, because
+# Netlify looks for a real file at that path.
+#
+# The vercel.json in this repo does the same job for Vercel, so the app can
+# be deployed to either host unchanged.
+/*    /index.html   200
