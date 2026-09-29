@@ -5,6 +5,17 @@ gems, built on **zero-frontend-trust** principles: the client can request a chal
 pick an option, but it has **zero influence** over whether it was correct or how much it is
 paid.
 
+## 🔗 Live demo
+
+| | |
+| --- | --- |
+| **Frontend** | https://full-stack-captcha-earn-module.vercel.app |
+| **API** | https://full-stack-captcha-earn-module-2.onrender.com |
+| **API health** | https://full-stack-captcha-earn-module-2.onrender.com/api/health |
+| **Demo login** | `demo@veloop.test` / `Demo@12345` (100 gems) |
+
+Stack: React + Vite (Vercel) · Express + Mongoose (Render) · MongoDB Atlas.
+
 ![flow](docs/flow.jpg)
 
 ---

@@ -44,6 +44,33 @@ app.use((req, res, next) => {
   next();
 });
 
+/**
+ * Root descriptor. Visiting the bare API URL should explain the service
+ * rather than return Express's default "Cannot GET /".
+ */
+app.get('/', (_req, res) => {
+  res.json({
+    service: 'VELoop Rewards API',
+    module: 'CAPTCHA Earn',
+    status: 'ok',
+    health: '/api/health',
+    endpoints: {
+      auth: ['POST /api/auth/register', 'POST /api/auth/login'],
+      captcha: [
+        'GET  /api/captcha/config',
+        'GET  /api/captcha/current',
+        'POST /api/captcha/verify',
+        'POST /api/captcha/claim',
+        'POST /api/captcha/decline',
+        'GET  /api/captcha/history'
+      ],
+      wallet: ['GET /api/wallet/gems', 'GET /api/wallet/transactions'],
+      security: ['GET /api/security/threats', 'GET /api/security/stats']
+    },
+    docs: 'See docs/API.md in the repository.'
+  });
+});
+
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', service: 'VELoop Rewards API' });
 });
