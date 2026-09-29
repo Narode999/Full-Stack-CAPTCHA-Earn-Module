@@ -1,0 +1,435 @@
+/* ==========================================================================
+   Components — the reusable vocabulary. Mix of square panels, thin-bordered
+   surfaces, flat lists and small pills. Not everything is a rounded card.
+   ========================================================================== */
+
+/* --- Panel: a thin-bordered surface, barely rounded ---------------------- */
+
+.panel {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+}
+
+.panel--flush {
+  background: transparent;
+  border: 0;
+}
+
+/* Square-ish hero panel used for the balance, deliberately not rounded. */
+.panel--hero {
+  background: linear-gradient(150deg, var(--surface-2), var(--surface) 58%);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  overflow: hidden;
+}
+
+/* --- Buttons ------------------------------------------------------------- */
+
+.btn {
+  --btn-bg: transparent;
+  --btn-fg: var(--text);
+  --btn-border: var(--border-strong);
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  min-height: 44px;
+  padding: 0 var(--s-5);
+  background: var(--btn-bg);
+  color: var(--btn-fg);
+  border: 1px solid var(--btn-border);
+  border-radius: var(--r-sm);
+  font-family: var(--font-ui);
+  font-size: var(--t-sm);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease),
+    color var(--t-fast) var(--ease), transform var(--t-fast) var(--ease),
+    box-shadow var(--t-fast) var(--ease);
+}
+
+.btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn--primary {
+  --btn-bg: var(--primary);
+  --btn-fg: #fff;
+  --btn-border: var(--primary);
+  box-shadow: var(--glow-primary);
+}
+
+.btn--primary:hover:not(:disabled) {
+  --btn-bg: var(--primary-bright);
+  --btn-border: var(--primary-bright);
+}
+
+.btn--ghost {
+  --btn-border: transparent;
+  --btn-fg: var(--text-muted);
+}
+
+.btn--ghost:hover:not(:disabled) {
+  --btn-fg: var(--text);
+  --btn-border: var(--border-strong);
+}
+
+.btn--success {
+  --btn-bg: var(--success);
+  --btn-fg: #06251a;
+  --btn-border: var(--success);
+}
+
+.btn--danger {
+  --btn-bg: var(--danger-dim);
+  --btn-fg: var(--danger);
+  --btn-border: var(--danger);
+}
+
+.btn--gold {
+  --btn-bg: var(--gold);
+  --btn-fg: #241a04;
+  --btn-border: var(--gold);
+}
+
+.btn--lg {
+  min-height: 52px;
+  padding: 0 var(--s-6);
+  font-size: var(--t-body);
+}
+
+.btn--block {
+  width: 100%;
+}
+
+/* --- Field --------------------------------------------------------------- */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.field__label {
+  font-size: var(--t-label);
+  font-weight: 600;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.field__input {
+  min-height: 48px;
+  padding: 0 var(--s-4);
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  font-size: var(--t-body);
+  transition: border-color var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
+}
+
+.field__input::placeholder {
+  color: var(--text-dim);
+}
+
+.field__input:hover {
+  border-color: var(--border-strong);
+}
+
+.field__input:focus {
+  outline: none;
+  border-color: var(--primary);
+  background: var(--surface);
+  box-shadow: 0 0 0 3px var(--primary-dim);
+}
+
+.field__input:focus-visible {
+  outline: none;
+}
+
+/* --- Pill / status badge ------------------------------------------------- */
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: 28px;
+  padding: 0 var(--s-3);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  font-size: var(--t-label);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.pill--green {
+  background: var(--success-dim);
+  border-color: rgba(101, 214, 161, 0.3);
+  color: var(--success);
+}
+.pill--gold {
+  background: var(--gold-dim);
+  border-color: rgba(244, 201, 93, 0.3);
+  color: var(--gold);
+}
+.pill--purple {
+  background: var(--primary-dim);
+  border-color: rgba(124, 108, 255, 0.3);
+  color: var(--primary-bright);
+}
+.pill--red {
+  background: var(--danger-dim);
+  border-color: rgba(255, 107, 122, 0.3);
+  color: var(--danger);
+}
+
+/* Live indicator dot with a gentle pulse. */
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
+
+.dot--pulse {
+  animation: pulse-dot 2.4s var(--ease-in-out) infinite;
+}
+
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* --- Error / note -------------------------------------------------------- */
+
+.notice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-sm);
+  font-size: var(--t-sm);
+  line-height: 1.5;
+}
+
+.notice svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+.notice--error {
+  background: var(--danger-dim);
+  border: 1px solid rgba(255, 107, 122, 0.3);
+  color: #ffb3ba;
+}
+
+.notice--info {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+
+.notice--green {
+  background: var(--success-dim);
+  border: 1px solid rgba(101, 214, 161, 0.3);
+  color: #9deccb;
+}
+
+/* --- Loading / empty ----------------------------------------------------- */
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--border-strong);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex: none;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-8) var(--s-4);
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.state__title {
+  font-family: var(--font-display);
+  font-size: var(--t-h3);
+  color: var(--text);
+}
+
+
+/* --- Link button --------------------------------------------------------- */
+
+.link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: 44px;
+  padding: 0;
+  background: none;
+  border: 0;
+  color: var(--primary-bright);
+  font-size: var(--t-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: color var(--t-fast) var(--ease), gap var(--t-fast) var(--ease);
+}
+
+.link-btn:hover {
+  color: var(--text);
+  gap: var(--s-3);
+}
+
+/* ==========================================================================
+   Timeline — a flat, divided list. Deliberately not a stack of cards.
+   ========================================================================== */
+
+.timeline {
+  list-style: none;
+  padding: 0;
+}
+
+.timeline__group + .timeline__group {
+  margin-top: var(--s-6);
+}
+
+.timeline__head {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding-bottom: var(--s-3);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: var(--s-1);
+}
+
+.timeline__row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--s-4);
+  min-height: 60px;
+  padding: var(--s-3) 0;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.timeline__row:last-child {
+  border-bottom: 0;
+}
+
+.timeline__mark {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  flex: none;
+}
+
+.timeline__row--ok .timeline__mark {
+  background: var(--success-dim);
+  border-color: rgba(101, 214, 161, 0.3);
+  color: var(--success);
+}
+
+.timeline__row--reward .timeline__mark {
+  background: var(--gold-dim);
+  border-color: rgba(244, 201, 93, 0.3);
+  color: var(--gold);
+}
+
+.timeline__body {
+  min-width: 0;
+}
+
+.timeline__title {
+  font-size: var(--t-body);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.timeline__meta {
+  font-size: var(--t-label);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.timeline__value {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-family: var(--font-mono);
+  font-size: var(--t-body);
+  font-weight: 600;
+  color: var(--gold);
+  white-space: nowrap;
+}
+
+.timeline__value--flat {
+  color: var(--text-muted);
+}
+
+/* ==========================================================================
+   Gem — the brand motif. A faceted cut, drawn rather than borrowed.
+   ========================================================================== */
+
+.gem {
+  color: var(--gold);
+}
+
+.gem--pulse {
+  animation: gem-breathe 5s var(--ease-in-out) infinite;
+}
+
+@keyframes gem-breathe {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+    filter: drop-shadow(0 0 12px rgba(244, 201, 93, 0.22));
+  }
+  50% {
+    transform: translateY(-7px) rotate(1.5deg);
+    filter: drop-shadow(0 0 22px rgba(244, 201, 93, 0.4));
+  }
+}

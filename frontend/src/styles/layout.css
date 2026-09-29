@@ -1,0 +1,352 @@
+/* ==========================================================================
+   Layout — application shell
+   Desktop: persistent left rail + main column.
+   Mobile:  no sidebar, fixed bottom navigation.
+   ========================================================================== */
+
+.shell {
+  display: grid;
+  grid-template-columns: 1fr;
+  min-height: 100dvh;
+}
+
+.shell__main {
+  min-width: 0;
+  padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + var(--s-6));
+}
+
+/* --- Desktop / tablet rail ---------------------------------------------- */
+
+.rail {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .shell {
+    grid-template-columns: var(--rail-w) minmax(0, 1fr);
+  }
+
+  .rail {
+    display: flex;
+    position: sticky;
+    top: 0;
+    height: 100dvh;
+    flex-direction: column;
+    gap: var(--s-6);
+    padding: var(--s-6) var(--s-5);
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+  }
+
+  .shell__main {
+    padding-bottom: 0;
+  }
+}
+
+/* --- Brand lockup -------------------------------------------------------- */
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.brand__text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1;
+}
+
+.brand__name {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.brand__sub {
+  font-size: 0.5625rem;
+  font-weight: 600;
+  letter-spacing: 0.34em;
+  color: var(--text-dim);
+  margin-top: 3px;
+}
+
+/* --- Navigation ---------------------------------------------------------- */
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nav__item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  min-height: 46px;
+  padding: 0 var(--s-3);
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: var(--t-sm);
+  font-weight: 500;
+  border-radius: var(--r-sm);
+  transition: color var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
+}
+
+.nav__item:hover {
+  color: var(--text);
+  background: var(--surface-2);
+}
+
+.nav__item--active {
+  color: var(--text);
+  background: var(--surface-2);
+}
+
+/* The active indicator slides rather than blinking in. */
+.nav__item--active::before {
+  content: '';
+  position: absolute;
+  left: -var(--s-5);
+  left: calc(var(--s-5) * -1);
+  top: 50%;
+  width: 2px;
+  height: 22px;
+  transform: translateY(-50%);
+  background: var(--primary);
+  border-radius: var(--r-pill);
+}
+
+.nav__icon {
+  flex: none;
+}
+
+.nav__foot {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  padding-top: var(--s-4);
+  border-top: 1px solid var(--border);
+}
+
+.user {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  min-width: 0;
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  background: var(--primary-dim);
+  border: 1px solid rgba(124, 108, 255, 0.32);
+  border-radius: var(--r-sm);
+  font-family: var(--font-display);
+  font-size: var(--t-sm);
+  font-weight: 700;
+  color: var(--primary-bright);
+  text-transform: uppercase;
+}
+
+.user__body {
+  min-width: 0;
+}
+
+.user__name {
+  font-size: var(--t-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user__status {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-size: var(--t-label);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--success);
+}
+
+/* Sign-out control, sized to the 44px touch minimum. */
+.icon-btn {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin-left: auto;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
+}
+
+.icon-btn:hover {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+
+
+/* --- Top bar: visible on mobile/tablet, folded into the rail on desktop -- */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  min-height: 60px;
+  padding: var(--s-3) var(--gutter);
+  border-bottom: 1px solid var(--border);
+  background: rgba(8, 10, 18, 0.82);
+  backdrop-filter: blur(12px);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+@media (min-width: 1024px) {
+  .topbar {
+    display: none;
+  }
+}
+
+.topbar__balance {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: 34px;
+  padding: 0 var(--s-3);
+  background: var(--gold-dim);
+  border: 1px solid rgba(244, 201, 93, 0.28);
+  border-radius: var(--r-pill);
+  font-family: var(--font-mono);
+  font-size: var(--t-sm);
+  font-weight: 600;
+  color: var(--gold);
+}
+
+/* --- Mobile bottom navigation ------------------------------------------- */
+
+.tabbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: var(--z-nav);
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--s-1);
+  padding: var(--s-2) var(--s-2) calc(var(--s-2) + env(safe-area-inset-bottom));
+  background: rgba(16, 21, 34, 0.94);
+  backdrop-filter: blur(16px);
+  border-top: 1px solid var(--border);
+}
+
+@media (min-width: 1024px) {
+  .tabbar {
+    display: none;
+  }
+}
+
+.tabbar__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-height: 52px;
+  padding: var(--s-1) 0;
+  color: var(--text-dim);
+  text-decoration: none;
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-radius: var(--r-sm);
+  transition: color var(--t-fast) var(--ease);
+}
+
+.tabbar__item--active {
+  color: var(--primary-bright);
+}
+
+.tabbar__item--active .tabbar__icon {
+  transform: translateY(-1px);
+}
+
+.tabbar__icon {
+  transition: transform var(--t-fast) var(--ease);
+}
+
+/* ==========================================================================
+   Page scaffolding
+   ========================================================================== */
+
+.main {
+  padding-block: var(--s-6) var(--s-8);
+}
+
+@media (min-width: 1024px) {
+  .main {
+    padding-block: var(--s-7) var(--s-9);
+  }
+}
+
+/* Editorial page header: label above a large display heading. */
+.phead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--s-4);
+  margin-bottom: var(--s-6);
+}
+
+.phead__title {
+  font-size: var(--t-h1);
+}
+
+.phead__sub {
+  margin-top: var(--s-2);
+  color: var(--text-muted);
+  font-size: var(--t-body);
+  max-width: 46ch;
+}
+
+/* Responsive grids — fluid, never fixed columns of desktop width. */
+.grid {
+  display: grid;
+  gap: var(--s-4);
+}
+
+.grid--2 {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+}
+
+.grid--4 {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr));
+}
+
+.grid--split {
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+}
+
+@media (max-width: 900px) {
+  .grid--split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

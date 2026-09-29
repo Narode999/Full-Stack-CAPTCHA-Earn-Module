@@ -1,54 +1,33 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
-import { Gem, ShieldCheck, RefreshCcw, Loader2, Gift, Zap, Smartphone, Lock, Sparkles, ChevronLeft } from 'lucide-react';
-import OptionCard from '../components/OptionCard.jsx';
-import CheckingState from '../components/CheckingState.jsx';
-import ResultModal from '../components/ResultModal.jsx';
-import CinematicBackdrop from '../components/CinematicBackdrop.jsx';
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { Check, X, ArrowRight, ShieldCheck, RefreshCcw, Lock, AlertCircle } from 'lucide-react';
+import GemMark from '../components/GemMark.jsx';
+import { Button, CountUp, PageHead } from '../components/ui.jsx';
 import { api, ApiError } from '../lib/api.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useWallet } from '../context/WalletContext.jsx';
 
 const SCAN_DURATION_MS = 500;
-const DEAD_CHALLENGE_CODES = ['CHALLENGE_EXPIRED', 'CHALLENGE_ALREADY_COMPLETED', 'CHALLENGE_UNAVAILABLE'];
-
-/** The five trust points shown beneath the card in the reference design. */
-const FEATURES = [
-  { icon: ShieldCheck, title: 'SECURE', copy: 'Advanced protection for your account', tone: '#4c8dff' },
-  { icon: Gift, title: 'REWARDING', copy: 'Earn gems for completing verification', tone: '#a78bfa' },
-  { icon: Zap, title: 'FAST', copy: 'Quick verification and rewards', tone: '#f5c451' },
-  { icon: Smartphone, title: 'MOBILE FIRST', copy: 'Optimized experience on every device', tone: '#4ade80' },
-  { icon: Lock, title: 'TRUSTED', copy: 'Your security is our priority', tone: '#fbbf24' }
+const DEAD_CHALLENGE_CODES = [
+  'CHALLENGE_EXPIRED',
+  'CHALLENGE_ALREADY_COMPLETED',
+  'CHALLENGE_UNAVAILABLE'
 ];
 
-function FeatureStrip() {
-  return (
-    <ul className="features">
-      {FEATURES.map(({ icon: Icon, title, copy, tone }) => (
-        <li className="feature" key={title}>
-          <span className="feature-icon" style={{ color: tone }}>
-            <Icon size={20} />
-          </span>
-          <span className="feature-body">
-            <strong>{title}</strong>
-            <span>{copy}</span>
-          </span>
-        </li>
-      ))}
-    </ul>
-  );
-}
+const STEPS = [{ id: 1, label: 'Verify' }, { id: 2, label: 'Reward' }];
 
 /**
- * The five states of the reference flow:
- *   loading -> challenge -> selected -> verifying -> result
+ * The earn ritual.
+ *
+ * One `phase` drives three visual states: challenge -> verifying -> result.
+ * All reward truth comes from the server. Verify records the reward as
+ * PENDING; only the claim call moves the balance, so the figure shown before
+ * claiming is the true, un-claimed balance.
  */
 export default function CaptchaEarn() {
-  const { user, token, balance: authBalance, setBalance: setAuthBalance } = useAuth();
+  const { token, setBalance: setAuthBalance } = useAuth();
   const { balance, setBalance } = useWallet();
   const reduceMotion = useReducedMotion();
-  const navigate = useNavigate();
 
   const [phase, setPhase] = useState('loading');
   const [challenge, setChallenge] = useState(null);
@@ -61,67 +40,6 @@ export default function CaptchaEarn() {
   const [claiming, setClaiming] = useState(false);
   const [claimStep, setClaimStep] = useState('idle');
   const scanTimer = useRef(null);
-
-  const headerBalance = Number(balance || authBalance || 0).toFixed(2);
-
-  // Which of the three visually distinct screens is on stage.
-  const stageKey =
-    phase === 'verifying' ? 'verifying' : phase === 'result' ? 'result' : 'challenge';
-
-  // The backdrop takes its colour from the outcome, so success glows green
-  // and failure glows red without any extra plumbing.
-  const mood = useMemo(() => {
-    if (stageKey === 'verifying') return 'verifying';
-    if (stageKey === 'result') return 'result';
-    return 'challenge';
-  }, [stageKey]);
-
-  // Cinematic crossfade between screens. When the user prefers reduced
-  // motion we drop to a plain opacity fade with no movement or blur.
-  const stageVariants = useMemo(
-    () => ({
-      enter: reduceMotion
-        ? { opacity: 0 }
-        : { opacity: 0, y: 26, scale: 0.985, filter: 'blur(10px)' },
-      center: reduceMotion
-        ? { opacity: 1, transition: { duration: 0.2 } }
-        : {
-            opacity: 1,
-            y: 0,
-            scale: 1,
-            filter: 'blur(0px)',
-            transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] }
-          },
-      exit: reduceMotion
-        ? { opacity: 0, transition: { duration: 0.15 } }
-        : {
-            opacity: 0,
-            y: -18,
-            scale: 1.02,
-            filter: 'blur(10px)',
-            transition: { duration: 0.26, ease: [0.4, 0, 1, 1] }
-          }
-    }),
-    [reduceMotion]
-  );
-
-  // The card itself lifts very slightly on the result screens, so the
-  // success/failure state reads as a beat rather than a plain swap.
-  const cardVariants = useMemo(
-    () => ({
-      challenge: { boxShadow: '0 24px 60px rgba(3, 5, 16, 0.65)' },
-      verifying: { boxShadow: '0 24px 70px rgba(76, 60, 200, 0.34)' },
-      result: reduceMotion
-        ? {}
-        : {
-            boxShadow:
-              stageKey === 'result'
-                ? '0 30px 80px rgba(3, 5, 16, 0.8)'
-                : '0 24px 60px rgba(3, 5, 16, 0.65)'
-          }
-    }),
-    [stageKey, reduceMotion]
-  );
 
   const loadChallenge = useCallback(
     async (forceNew = false) => {
@@ -148,10 +66,8 @@ export default function CaptchaEarn() {
     return () => clearTimeout(scanTimer.current);
   }, [token, loadChallenge]);
 
-  // Expiry countdown - the server is still the authority, this is only a hint.
   useEffect(() => {
     if (!challenge || phase === 'result' || phase === 'verifying') return undefined;
-
     const tick = () => {
       const remaining = Math.max(
         0,
@@ -160,7 +76,6 @@ export default function CaptchaEarn() {
       setSecondsLeft(remaining);
       if (remaining === 0) setError('This code has expired. Request a new one to continue.');
     };
-
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
@@ -171,8 +86,6 @@ export default function CaptchaEarn() {
     setSelected(option);
     setError('');
     setPhase('selected');
-
-    // ~0.5s scanning sweep across the chosen card.
     clearTimeout(scanTimer.current);
     setScanning(true);
     scanTimer.current = setTimeout(() => setScanning(false), SCAN_DURATION_MS);
@@ -180,33 +93,26 @@ export default function CaptchaEarn() {
 
   const handleSubmit = async () => {
     if (!challenge || !selected || phase === 'verifying') return;
-
     setPhase('verifying');
     setError('');
-
     try {
       const data = await api.verifyCaptcha({
         challengeId: challenge.challengeId,
         selectedOption: selected,
         signature: challenge.signature
       });
-
       setResult({
         outcome: data.result,
-        rewardAmount: data.reward?.amount ?? 0,
+        rewardAmount: (data.reward && data.reward.amount) || 0,
         balanceBefore: data.balanceBefore,
         newBalance: data.newBalance,
         rewardStatus: 'PENDING',
         challengeId: data.challengeId || challenge.challengeId
       });
-
-      // The reward is only PENDING now. The wallet has NOT changed yet.
       setPhase('result');
     } catch (err) {
       setError(err.message);
       setPhase('challenge');
-
-      // A dead challenge cannot be retried - swap in a fresh one.
       if (err instanceof ApiError && DEAD_CHALLENGE_CODES.includes(err.code)) {
         loadChallenge(true);
       }
@@ -219,34 +125,20 @@ export default function CaptchaEarn() {
     setRefreshing(false);
   };
 
-  /**
-   * Claim the pending reward (spec sections 29-32).
-   *
-   * A short "preparing" beat stands in for the rewarded-ad step the spec
-   * describes in section 36. No real ad network is involved.
-   */
   const handleClaim = async () => {
     if (!result || result.rewardStatus === 'CLAIMED' || claiming) return;
-
-
     setClaiming(true);
     setClaimStep('preparing');
-
-    // Mock rewarded-ad beat (~1.2s), clearly a dev/demo state.
     await new Promise(resolve => setTimeout(resolve, 1200));
     setClaimStep('reward');
-
     try {
       const data = await api.claimReward({ challengeId: result.challengeId });
-
       setResult(prev => ({
         ...prev,
         rewardStatus: 'CLAIMED',
         balanceBefore: data.balanceBefore,
         newBalance: data.newBalance
       }));
-
-      // Balance is refreshed from the server, never computed locally.
       const balanceNow = Number(data.newBalance);
       setBalance(balanceNow);
       setAuthBalance(balanceNow);
@@ -258,7 +150,6 @@ export default function CaptchaEarn() {
     }
   };
 
-  /** "No Thanks" (spec section 33) - forfeit the reward, then a fresh challenge. */
   const handleDecline = async () => {
     if (!result || claiming) return;
     setClaiming(true);
@@ -272,181 +163,295 @@ export default function CaptchaEarn() {
     }
   };
 
-  return (
-    <div className="app-shell">
-      <CinematicBackdrop mood={mood} />
+  const isResult = phase === 'result';
+  const isVerifying = phase === 'verifying';
+  const isCorrect = result ? result.outcome === 'CORRECT' : false;
+  const isClaimed = result ? result.rewardStatus === 'CLAIMED' : false;
+  const stage = reduceMotion ? 0 : 14;
 
-      <header className="topbar">
-        <button
-          type="button"
-          className="icon-btn"
-          aria-label="Back to dashboard"
-          onClick={() => navigate('/dashboard')}
+  const steps = STEPS.map((step, i) => {
+    const active = isCorrect || (!isResult && step.id === 1);
+    const done = isResult && step.id === 1;
+    return (
+      <span key={step.id} style={{ display: 'contents' }}>
+        {i > 0 && <span className="steps__rule" />}
+        <span
+          className={
+            'steps__item' + (active ? ' steps__item--active' : done ? ' steps__item--done' : '')
+          }
         >
-          <ChevronLeft size={20} />
-        </button>
-        <div className="brand">
-          <span className="brand-name">VELOOP</span>
-          <span className="brand-sub">REWARDS</span>
-        </div>
+          <span className="steps__num">0{step.id}</span>
+          {step.label}
+        </span>
+      </span>
+    );
+  });
 
-        <div className="balance-pill">
-          <Gem size={16} className="gem-icon" />
-          <span>{headerBalance}</span>
-        </div>
-      </header>
+  return (
+    <div className="stack" style={{ gap: 'var(--s-6)' }}>
+      <PageHead
+        label="Earn"
+        title="Verify to unlock"
+        sub="Confirm the code below to unlock your reward."
+        aside={
+          <span className="pill pill--gold">
+            <GemMark size={13} />
+            <CountUp value={Number(balance) || 0} />
+          </span>
+        }
+      />
 
-      {user && <p className="greeting">Welcome back, {user.name}</p>}
+      <div className="steps" aria-hidden="true">
+        {steps}
+      </div>
 
-      <motion.main
-        className="card"
-        animate={cardVariants[stageKey] || cardVariants.challenge}
-        transition={{ duration: 0.6, ease: 'easeOut' }}
-      >
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div
-            key={stageKey}
-            className="stage"
-            variants={stageVariants}
-            initial="enter"
-            animate="center"
-            exit="exit"
-          >
-            {phase === 'verifying' ? (
-              <CheckingState selectedOption={selected} />
-            ) : phase === 'result' && result ? (
-              <ResultModal
-                outcome={result.outcome}
-                rewardAmount={result.rewardAmount}
-                balanceBefore={result.balanceBefore}
-                newBalance={result.newBalance}
-                rewardStatus={result.rewardStatus}
-                claiming={claiming}
-                onClaim={handleClaim}
-                onDecline={handleDecline}
-              />
-            ) : (
-              <>
-            <h1 className="title">
-              Earn <span className="gold">Gems</span>
-            </h1>
-            <p className="subtitle">Complete a quick security check to earn rewards.</p>
-
-            <div className="code-panel">
-              {challenge && challenge.difficulty && (
-                <span className={`difficulty-tag lvl-${challenge.difficulty.level}`}>
-                  {challenge.difficulty.label}
-                </span>
-              )}
-
-              <p className="code-value">
-                {challenge ? challenge.captchaText : '\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7'}
-              </p>
-
-              <button type="button" className="new-code" onClick={handleNewCode} disabled={refreshing}>
-                {refreshing ? <Loader2 size={14} className="spin" /> : <RefreshCcw size={14} />}
-                New Code
-              </button>
-            </div>
-
-            <p className="pick-hint">Select the matching code</p>
-
-            <div className="options-grid">
-              {(challenge ? challenge.options : []).map((option, index) => (
-                <OptionCard
-                  key={option}
-                  option={option}
-                  index={index}
-                  selected={selected}
-                  scanning={scanning}
-                  revealed={phase === 'result'}
-                  outcome={result ? result.outcome : null}
-                  disabled={phase === 'loading'}
-                  onSelect={handleSelect}
-                />
-              ))}
-            </div>
-
-            {/* The reference design only reveals the submit button once an
-                option is chosen, so it is not rendered at all before that. */}
-            {selected && (
-              <motion.button
-                type="button"
-                className="btn btn-primary submit-btn"
-                onClick={handleSubmit}
-                disabled={secondsLeft === 0}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.25 }}
-              >
-                Submit Answer
-              </motion.button>
-            )}
-
-            {error && <p className="error-text">{error}</p>}
-
-            <p className="note-row">
-              <ShieldCheck size={16} />
-              <span>This helps protect your account from automated access.</span>
-            </p>
-
-            {/* Reward banner only appears on the two challenge screens. */}
-            {phase !== 'result' && (
-              <div className="reward-banner">
-                <Gem size={20} className="gem-icon" />
-                <span>
-                  Complete verification to earn
-                  <br />
-                  <strong>+1 Gem</strong>
-                </span>
-              </div>
-            )}
-              </>
-            )}
-          </motion.div>
-        </AnimatePresence>
-      </motion.main>
-
-      <FeatureStrip />
-
-      {/* Mock rewarded-ad beat (spec section 36).
-          Intentionally a demo state - no ad network is integrated. */}
-      <AnimatePresence>
-        {claiming && (
-          <motion.div
-            className="ad-overlay"
+      <AnimatePresence mode="wait">
+        {phase === 'loading' && (
+          <motion.section
+            key="loading"
+            className="panel panel__body"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
+          >
+            <div className="state">
+              <span className="spinner" aria-hidden="true" />
+              <p className="label">Requesting a challenge</p>
+            </div>
+          </motion.section>
+        )}
+
+        {isVerifying && (
+          <motion.section
+            key="verifying"
+            className="panel"
+            initial={{ opacity: 0, y: stage }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -stage }}
+            transition={{ duration: 0.34, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <div className="verifying" role="status" aria-live="polite">
+              <span className="verifying__mark">
+                <Lock size={30} strokeWidth={2} />
+              </span>
+              <h2 className="shead__title">Verifying</h2>
+              <p className="muted" style={{ fontSize: '0.875rem' }}>
+                Checking your answer against the server
+                {selected ? ' (' + selected + ')' : ''}
+              </p>
+              <div className="verifying__track" aria-hidden="true">
+                <motion.span
+                  className="verifying__fill"
+                  initial={{ width: '0%' }}
+                  animate={{ width: '100%' }}
+                  transition={{ duration: 0.5, ease: 'easeInOut' }}
+                />
+              </div>
+            </div>
+          </motion.section>
+        )}
+
+        {isResult && result && (
+          <motion.section
+            key="result"
+            className={'panel result ' + (isCorrect ? 'result--ok' : 'result--fail')}
+            initial={{ opacity: 0, y: stage }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -stage }}
+            transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
             role="status"
             aria-live="polite"
           >
             <motion.div
-              className="ad-card"
-              initial={{ scale: 0.88, y: 16 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.94, opacity: 0 }}
-              transition={{ type: 'spring', stiffness: 240, damping: 20 }}
+              className="result__mark"
+              initial={{ scale: 0.7, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 260, damping: 16 }}
             >
-              {claimStep === 'preparing' ? (
-                <>
-                  <Loader2 size={34} className="spin gem-icon" />
-                  <h3>Preparing reward…</h3>
-                  <p>Mock rewarded ad — development only</p>
-                </>
-              ) : (
-                <>
-                  <Sparkles size={34} className="gem-icon" />
-                  <h3>Reward completed</h3>
-                  <p>Adding to your balance…</p>
-                </>
-              )}
+              {isCorrect ? <GemMark size={40} tone="gold" pulse /> : <X size={34} strokeWidth={3} />}
             </motion.div>
-          </motion.div>
+
+            <h2 className="shead__title">
+              {isCorrect ? 'Verification complete' : 'Verification unsuccessful'}
+            </h2>
+
+            {isCorrect ? (
+              <Fragment>
+                <p className="result__gain">
+                  <GemMark size={22} />
+                  +{result.rewardAmount} Gems
+                </p>
+
+                {isClaimed ? (
+                  <div className="balance-move">
+                    <div className="balance-move__col">
+                      <span className="balance-move__num">
+                        {Number(result.balanceBefore).toFixed(2)}
+                      </span>
+                      <span className="balance-move__cap">Previous</span>
+                    </div>
+                    <ArrowRight size={18} className="muted" aria-hidden="true" />
+                    <div className="balance-move__col">
+                      <span className="balance-move__num" style={{ color: 'var(--gold)' }}>
+                        <CountUp value={Number(result.newBalance) || 0} />
+                      </span>
+                      <span className="balance-move__cap">New balance</span>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="notice notice--info">
+                    <ShieldCheck size={15} style={{ flex: 'none' }} aria-hidden="true" />
+                    <span>Claim this reward to add it to your balance.</span>
+                  </p>
+                )}
+
+                <div className="result__actions">
+                  <Button
+                    variant="success"
+                    size="lg"
+                    onClick={handleClaim}
+                    disabled={claiming || isClaimed}
+                  >
+                    {claiming
+                      ? claimStep === 'preparing'
+                        ? 'Preparingâ€¦'
+                        : 'Creditingâ€¦'
+                      : isClaimed
+                        ? 'Added to balance'
+                        : 'Add to balance'}
+                  </Button>
+                  <Button variant="ghost" onClick={handleDecline} disabled={claiming || isClaimed}>
+                    Maybe later
+                  </Button>
+                </div>
+              </Fragment>
+            ) : (
+              <Fragment>
+                <p className="muted">That code does not match. Try the challenge again.</p>
+                <div className="result__actions">
+                  <Button variant="primary" size="lg" onClick={handleNewCode} disabled={refreshing}>
+                    <RefreshCcw size={16} aria-hidden="true" />
+                    New code
+                  </Button>
+                </div>
+              </Fragment>
+            )}
+          </motion.section>
+        )}
+
+        {(phase === 'challenge' || phase === 'selected') && (
+          <motion.section
+            key="challenge"
+            className="panel"
+            initial={{ opacity: 0, y: stage }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -stage }}
+            transition={{ duration: 0.34, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <div className="panel__body stack" style={{ gap: 'var(--s-4)' }}>
+              <div>
+                <div className="row" style={{ justifyContent: 'space-between', marginBottom: 12 }}>
+                  <p className="label">Your code</p>
+                  <p
+                    className="label"
+                    style={{ color: secondsLeft > 0 ? 'var(--text-dim)' : 'var(--danger)' }}
+                  >
+                    {secondsLeft > 0 ? secondsLeft + 's' : 'Expired'}
+                  </p>
+                </div>
+
+                <p className="code" aria-label={'Challenge code ' + (challenge ? challenge.captchaText : '')}>
+                  {(challenge ? challenge.captchaText : 'Â·Â·Â·Â·Â·Â·')
+                    .split('')
+                    .map((char, i) => (
+                      <span
+                        key={char + '-' + i}
+                        className="code__char"
+                        style={{ animationDelay: i * 40 + 'ms' }}
+                      >
+                        {char}
+                      </span>
+                    ))}
+                </p>
+              </div>
+
+              <p className="prompt">Select the match</p>
+
+              <div className="options" role="group" aria-label="Challenge options">
+                {((challenge && challenge.options) || []).map((option, index) => {
+                  const isSelected = selected === option;
+                  const cls = [
+                    'option',
+                    isSelected ? 'option--selected' : '',
+                    isResult && isSelected && isCorrect ? 'option--correct' : '',
+                    isResult && isSelected && !isCorrect ? 'option--wrong' : '',
+                    isResult && !isSelected ? 'option--muted' : ''
+                  ]
+                    .filter(Boolean)
+                    .join(' ');
+                  return (
+                    <motion.button
+                      key={option}
+                      type="button"
+                      className={cls}
+                      onClick={() => handleSelect(option)}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.05, duration: 0.26 }}
+                      whileTap={{ scale: 0.98 }}
+                      aria-pressed={isSelected}
+                    >
+                      {scanning && isSelected && (
+                        <span className="option__scan" aria-hidden="true" />
+                      )}
+                      <span>{option}</span>
+                      {isSelected && (
+                        <span className="option__tick" aria-hidden="true">
+                          <Check size={11} strokeWidth={3.5} />
+                        </span>
+                      )}
+                    </motion.button>
+                  );
+                })}
+              </div>
+
+              {error && (
+                <p className="notice notice--error" role="alert">
+                  <AlertCircle size={15} style={{ flex: 'none' }} aria-hidden="true" />
+                  <span>{error}</span>
+                </p>
+              )}
+
+              {selected && (
+                <Button
+                  variant="primary"
+                  size="lg"
+                  block
+                  onClick={handleSubmit}
+                  disabled={secondsLeft === 0}
+                >
+                  Submit answer
+                </Button>
+              )}
+
+              <div
+                className="row"
+                style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}
+              >
+                <p className="row" style={{ gap: 8, fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
+                  <ShieldCheck size={15} style={{ color: 'var(--success)', flex: 'none' }} aria-hidden="true" />
+                  Security check â€” helps protect your account from automated access.
+                </p>
+
+                <Button variant="ghost" onClick={handleNewCode} disabled={refreshing}>
+                  <RefreshCcw size={15} aria-hidden="true" />
+                  New code
+                </Button>
+              </div>
+            </div>
+          </motion.section>
         )}
       </AnimatePresence>
     </div>
   );
 }
-

@@ -1,0 +1,95 @@
+/* ==========================================================================
+   VELOOP REWARDS — design tokens
+   Single source of truth for the whole interface. Components never hardcode
+   a colour, size or duration; they reference a token so the system can be
+   retuned from this file alone.
+   ========================================================================== */
+
+:root {
+  /* --- Surfaces ---------------------------------------------------------- */
+  --bg: #080a12;
+  --surface: #101522;
+  --surface-2: #151b2b;
+  --border: #252d42;
+  --border-soft: #1b2132;
+  --border-strong: #313b54;
+
+  /* --- Brand ------------------------------------------------------------- */
+  --primary: #7c6cff;
+  --primary-bright: #9a8cff;
+  --primary-dim: rgba(124, 108, 255, 0.12);
+
+  /* --- Value (gems, rewards, money-like things) -------------------------- */
+  --gold: #f4c95d;
+  --gold-deep: #c99b32;
+  --gold-dim: rgba(244, 201, 93, 0.12);
+
+  /* --- Semantic ---------------------------------------------------------- */
+  --success: #65d6a1;
+  --success-dim: rgba(101, 214, 161, 0.12);
+  --danger: #ff6b7a;
+  --danger-dim: rgba(255, 107, 122, 0.12);
+  --warn: #f0a860;
+
+  /* --- Text -------------------------------------------------------------- */
+  --text: #f5f7ff;
+  --text-muted: #8993ad;
+  --text-dim: #5c6784;
+
+  /* --- Type -------------------------------------------------------------- */
+  --font-display: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  --font-ui: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  /* Fluid display sizes — no fixed desktop pixel values. */
+  --t-mega: clamp(2.75rem, 1.4rem + 6.4vw, 6.25rem);
+  --t-h1: clamp(1.85rem, 1.2rem + 2.9vw, 3.5rem);
+  --t-h2: clamp(1.4rem, 1.05rem + 1.5vw, 2.1rem);
+  --t-h3: clamp(1.05rem, 0.95rem + 0.5vw, 1.3rem);
+  --t-body: clamp(0.95rem, 0.9rem + 0.2vw, 1.05rem);
+  --t-sm: 0.875rem;
+  --t-label: 0.6875rem;
+
+  --track-label: 0.16em;
+
+  /* --- Space ------------------------------------------------------------- */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+  --s-8: 64px;
+  --s-9: 96px;
+
+  --gutter: clamp(1.25rem, 0.6rem + 3vw, 3.5rem);
+  --rail-w: 264px;
+  --max-w: 1440px;
+
+  /* --- Radius — deliberately restrained ---------------------------------- */
+  --r-xs: 2px;
+  --r-sm: 4px;
+  --r-md: 8px;
+  --r-pill: 999px;
+
+  /* --- Motion ------------------------------------------------------------ */
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --t-fast: 150ms;
+  --t-base: 240ms;
+  --t-slow: 420ms;
+  --t-reward: 620ms;
+
+  /* --- Elevation --------------------------------------------------------- */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 8px 24px -8px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 24px 64px -16px rgba(0, 0, 0, 0.7);
+  --glow-gold: 0 0 48px -8px rgba(244, 201, 93, 0.35);
+  --glow-primary: 0 0 40px -10px rgba(124, 108, 255, 0.5);
+
+  /* --- Layers ------------------------------------------------------------ */
+  --nav-h: 68px;
+  --z-nav: 40;
+  --z-overlay: 60;
+}
