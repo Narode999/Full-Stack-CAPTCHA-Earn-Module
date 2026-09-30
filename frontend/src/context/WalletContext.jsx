@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { api } from '../lib/api.js';
 import { useAuth } from './AuthContext.jsx';
 
-const AuthContext = createContext(null);
+const WalletContext = createContext(null);
 
 /**
  * Server-authoritative wallet (spec sections 42 and 43).
