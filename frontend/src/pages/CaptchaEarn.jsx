@@ -1,8 +1,12 @@
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { Check, X, ArrowRight, ShieldCheck, RefreshCcw, Lock, AlertCircle } from 'lucide-react';
+import {
+  Check, X, ArrowRight, ShieldCheck, RefreshCcw, Lock, AlertCircle,
+  Gift, Zap, Smartphone
+} from 'lucide-react';
 import GemMark from '../components/GemMark.jsx';
-import { Button, CountUp, PageHead, RewardBurst } from '../components/ui.jsx';
+import BackButton from '../components/BackButton.jsx';
+import { Button, CountUp, RewardBurst } from '../components/ui.jsx';
 import { api, ApiError } from '../lib/api.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useWallet } from '../context/WalletContext.jsx';
@@ -14,15 +18,44 @@ const DEAD_CHALLENGE_CODES = [
   'CHALLENGE_UNAVAILABLE'
 ];
 
-const STEPS = [{ id: 1, label: 'Verify' }, { id: 2, label: 'Reward' }];
+// Reference design footer strip.
+const FEATURES = [
+  { icon: ShieldCheck, title: 'Secure', copy: 'Advanced protection for your account', tone: '#4c8dff' },
+  { icon: Gift, title: 'Rewarding', copy: 'Earn gems for completing verification', tone: '#a78bfa' },
+  { icon: Zap, title: 'Fast', copy: 'Quick verification and rewards', tone: '#f5c451' },
+  { icon: Smartphone, title: 'Mobile first', copy: 'Optimized experience on every device', tone: '#4ade80' }
+];
+
+const STATES = ['Challenge', 'Selected', 'Verifying', 'Success', 'Incorrect'];
+
+function FeatureStrip() {
+  return (
+    <div className="featstrip">
+      {FEATURES.map(({ icon: Icon, title, copy, tone }) => (
+        <div className="featstrip__item" key={title}>
+          <Icon size={22} style={{ color: tone, flex: 'none' }} aria-hidden="true" />
+          <span>
+            <strong>{title}</strong>
+            <span>{copy}</span>
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 /**
- * The earn ritual.
+ * The earn screen, rebuilt against docs/flow.jpg.
  *
- * One `phase` drives three visual states: challenge -> verifying -> result.
- * All reward truth comes from the server. Verify records the reward as
- * PENDING; only the claim call moves the balance, so the figure shown before
- * claiming is the true, un-claimed balance.
+ * Two behaviours here come straight from the assignment rather than the mock:
+ *
+ *  - Section 15 states there is NO submit button. Selecting an option locks
+ *    the grid, plays the ~0.5s scan, then submits automatically.
+ *  - Sections 22 and 29 require BOTH result states to show the reward (1 gem
+ *    correct, 0.5 wrong) and offer Claim and No Thanks. A wrong answer is a
+ *    smaller reward, not a dead end.
+ *
+ * All reward values come from the server response.
  */
 export default function CaptchaEarn() {
   const { token, setBalance: setAuthBalance } = useAuth();
@@ -41,6 +74,7 @@ export default function CaptchaEarn() {
   const [claimStep, setClaimStep] = useState('idle');
   const [burstKey, setBurstKey] = useState(0);
   const scanTimer = useRef(null);
+  const submitTimer = useRef(null);
 
   const loadChallenge = useCallback(
     async (forceNew = false) => {
@@ -64,7 +98,10 @@ export default function CaptchaEarn() {
   useEffect(() => {
     if (!token) return undefined;
     loadChallenge(false);
-    return () => clearTimeout(scanTimer.current);
+    return () => {
+      clearTimeout(scanTimer.current);
+      clearTimeout(submitTimer.current);
+    };
   }, [token, loadChallenge]);
 
   useEffect(() => {
@@ -82,24 +119,14 @@ export default function CaptchaEarn() {
     return () => clearInterval(id);
   }, [challenge, phase]);
 
-  const handleSelect = option => {
-    if (phase !== 'challenge' && phase !== 'selected') return;
-    setSelected(option);
-    setError('');
-    setPhase('selected');
-    clearTimeout(scanTimer.current);
-    setScanning(true);
-    scanTimer.current = setTimeout(() => setScanning(false), SCAN_DURATION_MS);
-  };
-
-  const handleSubmit = async () => {
-    if (!challenge || !selected || phase === 'verifying') return;
+  const verify = useCallback(async (option) => {
+    if (!challenge) return;
     setPhase('verifying');
     setError('');
     try {
       const data = await api.verifyCaptcha({
         challengeId: challenge.challengeId,
-        selectedOption: selected,
+        selectedOption: option,
         signature: challenge.signature
       });
       setResult({
@@ -118,9 +145,24 @@ export default function CaptchaEarn() {
         loadChallenge(true);
       }
     }
+  }, [challenge, loadChallenge]);
+
+  // Section 15: no submit button. Select -> lock -> scan -> auto verify.
+  const handleSelect = option => {
+    if (phase !== 'challenge' && phase !== 'selected') return;
+    setSelected(option);
+    setError('');
+    setPhase('selected');
+
+    clearTimeout(scanTimer.current);
+    setScanning(true);
+    scanTimer.current = setTimeout(() => setScanning(false), SCAN_DURATION_MS);
+
+    submitTimer.current = setTimeout(() => verify(option), SCAN_DURATION_MS);
   };
 
   const handleNewCode = async () => {
+    clearTimeout(submitTimer.current);
     setRefreshing(true);
     await loadChallenge(true);
     setRefreshing(false);
@@ -141,9 +183,9 @@ export default function CaptchaEarn() {
         newBalance: data.newBalance
       }));
       const balanceNow = Number(data.newBalance);
-      setBurstKey(prev => prev + 1);
       setBalance(balanceNow);
       setAuthBalance(balanceNow);
+      setBurstKey(prev => prev + 1);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -171,51 +213,38 @@ export default function CaptchaEarn() {
   const isClaimed = result ? result.rewardStatus === 'CLAIMED' : false;
   const stage = reduceMotion ? 0 : 14;
 
-  const steps = STEPS.map((step, i) => {
-    const active = isCorrect || (!isResult && step.id === 1);
-    const done = isResult && step.id === 1;
+  // Which of the five numbered reference states is on screen.
+  const chipIndex =
+    phase === 'loading' ? -1 : isVerifying ? 2 : isResult ? (isCorrect ? 3 : 4) : selected ? 1 : 0;
+
+  const chips = STATES.map((name, i) => {
+    let cls = 'statechip';
+    if (i === chipIndex) cls += isResult ? (isCorrect ? ' statechip--ok' : ' statechip--bad') : ' statechip--on';
     return (
-      <span key={step.id} style={{ display: 'contents' }}>
-        {i > 0 && <span className="steps__rule" />}
-        <span
-          className={
-            'steps__item' + (active ? ' steps__item--active' : done ? ' steps__item--done' : '')
-          }
-        >
-          <span className="steps__num">0{step.id}</span>
-          {step.label}
-        </span>
+      <span className={cls} key={name} aria-current={i === chipIndex ? 'step' : undefined}>
+        <span className="statechip__num">{i + 1}</span>
+        {name}
       </span>
     );
   });
 
   return (
-    <div className="stack" style={{ gap: 'var(--s-6)' }}>
-      <PageHead
-        label="Earn"
-        title="Verify to unlock"
-        sub="Confirm the code below to unlock your reward."
-        aside={
-          <span className="pill pill--gold">
-            <GemMark size={13} />
-            <CountUp value={Number(balance) || 0} />
-          </span>
-        }
-      />
+    <div className="stack" style={{ gap: 'var(--s-4)' }}>
+      <BackButton to="/dashboard" label="Back to dashboard" />
 
-      <div className="steps" aria-hidden="true">
-        {steps}
+      <div style={{ textAlign: 'center' }}>
+        <h1 className="goldtitle">Earn Gems</h1>
+        <p className="pagesub">Complete a quick security check to earn rewards.</p>
+      </div>
+
+      <div className="statechips" aria-label="Verification progress">
+        {chips}
       </div>
 
       <AnimatePresence mode="wait">
         {phase === 'loading' && (
-          <motion.section
-            key="loading"
-            className="panel panel__body"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
+          <motion.section key="loading" className="panel panel__body"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <div className="state">
               <span className="spinner" aria-hidden="true" />
               <p className="label">Requesting a challenge</p>
@@ -224,162 +253,135 @@ export default function CaptchaEarn() {
         )}
 
         {isVerifying && (
-          <motion.section
-            key="verifying"
-            className="panel"
-            initial={{ opacity: 0, y: stage }}
-            animate={{ opacity: 1, y: 0 }}
+          <motion.section key="verifying" className="panel panel__body"
+            initial={{ opacity: 0, y: stage }} animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -stage }}
-            transition={{ duration: 0.34, ease: [0.22, 1, 0.36, 1] }}
-          >
+            transition={{ duration: 0.34, ease: [0.22, 1, 0.36, 1] }}>
             <div className="verifying" role="status" aria-live="polite">
-              <span className="verifying__mark">
-                <Lock size={30} strokeWidth={2} />
-              </span>
-              <h2 className="shead__title">Verifying</h2>
+              <div className="rings" aria-hidden="true">
+                <span className="rings__ring" />
+                <span className="rings__ring" />
+                <span className="rings__ring" />
+                <span className="rings__core"><Lock size={30} strokeWidth={2} /></span>
+              </div>
+              <h2 className="shead__title">Verifying...</h2>
               <p className="muted" style={{ fontSize: '0.875rem' }}>
-                Checking your answer against the server
-                {selected ? ' (' + selected + ')' : ''}
+                Please wait while we check your answer.
               </p>
               <div className="verifying__track" aria-hidden="true">
-                <motion.span
-                  className="verifying__fill"
-                  initial={{ width: '0%' }}
-                  animate={{ width: '100%' }}
-                  transition={{ duration: 0.5, ease: 'easeInOut' }}
-                />
+                <motion.span className="verifying__fill"
+                  initial={{ width: '0%' }} animate={{ width: '100%' }}
+                  transition={{ duration: 0.5, ease: 'easeInOut' }} />
               </div>
+              <p className="notice notice--info">
+                <ShieldCheck size={15} style={{ flex: 'none' }} aria-hidden="true" />
+                <span>Do not close this screen while verification is in progress.</span>
+              </p>
             </div>
           </motion.section>
         )}
 
         {isResult && result && (
-          <motion.section
-            key="result"
+          <motion.section key="result"
             className={'panel result ' + (isCorrect ? 'result--ok' : 'result--fail')}
-            initial={{ opacity: 0, y: stage }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, y: stage }} animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -stage }}
             transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
-            role="status"
-            aria-live="polite"
-          >
+            role="status" aria-live="polite">
+
             <RewardBurst key={burstKey} show={burstKey > 0 && isClaimed} />
 
-            <motion.div
-              className="result__mark"
-              initial={{ scale: 0.7, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ type: 'spring', stiffness: 260, damping: 16 }}
-            >
-              {isCorrect ? <GemMark size={40} tone="gold" pulse /> : <X size={34} strokeWidth={3} />}
+            <motion.div className="result__mark"
+              initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 260, damping: 16 }}>
+              {isCorrect ? <Check size={44} strokeWidth={3} /> : <X size={44} strokeWidth={3} />}
             </motion.div>
 
-            <h2 className="shead__title">
-              {isCorrect ? 'Verification complete' : 'Verification unsuccessful'}
+            <h2 className="shead__title" style={{ color: isCorrect ? 'var(--success)' : 'var(--danger)' }}>
+              {isCorrect ? 'Verification Complete!' : 'Verification Unsuccessful'}
             </h2>
 
-            {isCorrect ? (
-              <Fragment>
-                <p className="result__gain">
-                  <GemMark size={22} />
-                  +{result.rewardAmount} Gems
-                </p>
+            <p className="muted" style={{ fontSize: '0.9rem' }}>
+              {isCorrect ? 'You earned' : 'The selected code does not match. Your effort still earns a partial reward.'}
+            </p>
 
-                {isClaimed ? (
-                  <div className="balance-move">
-                    <div className="balance-move__col">
-                      <span className="balance-move__num">
-                        {Number(result.balanceBefore).toFixed(2)}
-                      </span>
-                      <span className="balance-move__cap">Previous</span>
-                    </div>
-                    <ArrowRight size={18} className="muted" aria-hidden="true" />
-                    <div className="balance-move__col">
-                      <span className="balance-move__num" style={{ color: 'var(--gold)' }}>
-                        <CountUp value={Number(result.newBalance) || 0} />
-                      </span>
-                      <span className="balance-move__cap">New balance</span>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="notice notice--info">
-                    <ShieldCheck size={15} style={{ flex: 'none' }} aria-hidden="true" />
-                    <span>Claim this reward to add it to your balance.</span>
-                  </p>
-                )}
+            <p className="result__gain">
+              <GemMark size={22} />
+              +{result.rewardAmount} Gems
+            </p>
 
-                <div className="result__actions">
-                  <Button
-                    variant="success"
-                    size="lg"
-                    onClick={handleClaim}
-                    disabled={claiming || isClaimed}
-                  >
-                    {claiming
-                      ? claimStep === 'preparing'
-                        ? 'PreparingÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦'
-                        : 'CreditingÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦'
-                      : isClaimed
-                        ? 'Added to balance'
-                        : 'Add to balance'}
-                  </Button>
-                  <Button variant="ghost" onClick={handleDecline} disabled={claiming || isClaimed}>
-                    Maybe later
-                  </Button>
+            {isClaimed ? (
+              <div className="balance-move">
+                <div className="balance-move__col">
+                  <span className="balance-move__num">{Number(result.balanceBefore).toFixed(2)}</span>
+                  <span className="balance-move__cap">Previous balance</span>
                 </div>
-              </Fragment>
+                <ArrowRight size={18} className="muted" aria-hidden="true" />
+                <div className="balance-move__col">
+                  <span className="balance-move__num" style={{ color: 'var(--gold)' }}>
+                    <CountUp value={Number(result.newBalance) || 0} />
+                  </span>
+                  <span className="balance-move__cap">New balance</span>
+                </div>
+              </div>
             ) : (
-              <Fragment>
-                <p className="muted">That code does not match. Try the challenge again.</p>
-                <div className="result__actions">
-                  <Button variant="primary" size="lg" onClick={handleNewCode} disabled={refreshing}>
-                    <RefreshCcw size={16} aria-hidden="true" />
-                    New code
-                  </Button>
-                </div>
-              </Fragment>
+              <p className="notice notice--info">
+                <ShieldCheck size={15} style={{ flex: 'none' }} aria-hidden="true" />
+                <span>Claim this reward to add it to your balance.</span>
+              </p>
             )}
+
+            <div className="result__actions">
+              <Button variant="success" size="lg" onClick={handleClaim} disabled={claiming || isClaimed}>
+                {claiming
+                  ? claimStep === 'preparing' ? 'Preparing…' : 'Crediting…'
+                  : isClaimed ? 'Added to balance' : 'Add to Balance'}
+              </Button>
+              <Button variant="ghost" onClick={handleDecline} disabled={claiming || isClaimed}>
+                Maybe Later
+              </Button>
+            </div>
+
+            <p className="notice notice--info">
+              <ShieldCheck size={15} style={{ flex: 'none' }} aria-hidden="true" />
+              <span>
+                {isClaimed
+                  ? 'Your reward has been added to your account.'
+                  : 'Tap Add to Balance to bank this reward.'}
+              </span>
+            </p>
           </motion.section>
         )}
 
         {(phase === 'challenge' || phase === 'selected') && (
-          <motion.section
-            key="challenge"
-            className="panel"
-            initial={{ opacity: 0, y: stage }}
-            animate={{ opacity: 1, y: 0 }}
+          <motion.section key="challenge" className="panel"
+            initial={{ opacity: 0, y: stage }} animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -stage }}
-            transition={{ duration: 0.34, ease: [0.22, 1, 0.36, 1] }}
-          >
-            <div className="panel__body stack" style={{ gap: 'var(--s-4)' }}>
-              <div>
-                <div className="row" style={{ justifyContent: 'space-between', marginBottom: 12 }}>
-                  <p className="label">Your code</p>
-                  <p
-                    className="label"
-                    style={{ color: secondsLeft > 0 ? 'var(--text-dim)' : 'var(--danger)' }}
-                  >
-                    {secondsLeft > 0 ? secondsLeft + 's' : 'Expired'}
-                  </p>
-                </div>
+            transition={{ duration: 0.34, ease: [0.22, 1, 0.36, 1] }}>
 
-                <p className="code" aria-label={'Challenge code ' + (challenge ? challenge.captchaText : '')}>
-                  {(challenge ? challenge.captchaText : 'Ãƒâ€šÃ‚Â·Ãƒâ€šÃ‚Â·Ãƒâ€šÃ‚Â·Ãƒâ€šÃ‚Â·Ãƒâ€šÃ‚Â·Ãƒâ€šÃ‚Â·')
+            <div className="panel__body stack" style={{ gap: 'var(--s-4)' }}>
+              <div className="codepanel">
+                <p className="codepanel__chars" aria-label={'Challenge code ' + (challenge ? challenge.captchaText : '')}>
+                  {(challenge ? challenge.captchaText : '······')
                     .split('')
                     .map((char, i) => (
-                      <span
-                        key={char + '-' + i}
-                        className="code__char"
-                        style={{ animationDelay: i * 40 + 'ms' }}
-                      >
+                      <span key={char + '-' + i} className="code__char" style={{ animationDelay: i * 40 + 'ms' }}>
                         {char}
                       </span>
                     ))}
                 </p>
+                <button type="button" className="codepanel__refresh" onClick={handleNewCode} disabled={refreshing}>
+                  <RefreshCcw size={12} aria-hidden="true" />
+                  New Code
+                </button>
+                <p className="label" style={{ marginTop: 8, color: secondsLeft > 0 ? 'var(--text-dim)' : 'var(--danger)' }}>
+                  {secondsLeft > 0 ? 'Expires in ' + secondsLeft + 's' : 'Expired'}
+                </p>
               </div>
 
-              <p className="prompt">Select the match</p>
+              <p className="selectlabel">
+                {selected ? 'Verifying your selection…' : 'Select the matching code'}
+              </p>
 
               <div className="options" role="group" aria-label="Challenge options">
                 {((challenge && challenge.options) || []).map((option, index) => {
@@ -390,24 +392,15 @@ export default function CaptchaEarn() {
                     isResult && isSelected && isCorrect ? 'option--correct' : '',
                     isResult && isSelected && !isCorrect ? 'option--wrong' : '',
                     isResult && !isSelected ? 'option--muted' : ''
-                  ]
-                    .filter(Boolean)
-                    .join(' ');
+                  ].filter(Boolean).join(' ');
                   return (
-                    <motion.button
-                      key={option}
-                      type="button"
-                      className={cls}
+                    <motion.button key={option} type="button" className={cls}
                       onClick={() => handleSelect(option)}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
+                      disabled={phase !== 'challenge'}
+                      initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.05, duration: 0.26 }}
-                      whileTap={{ scale: 0.98 }}
-                      aria-pressed={isSelected}
-                    >
-                      {scanning && isSelected && (
-                        <span className="option__scan" aria-hidden="true" />
-                      )}
+                      whileTap={{ scale: 0.98 }} aria-pressed={isSelected}>
+                      {scanning && isSelected && <span className="option__scan" aria-hidden="true" />}
                       <span>{option}</span>
                       {isSelected && (
                         <span className="option__tick" aria-hidden="true">
@@ -426,36 +419,21 @@ export default function CaptchaEarn() {
                 </p>
               )}
 
-              {selected && (
-                <Button
-                  variant="primary"
-                  size="lg"
-                  block
-                  onClick={handleSubmit}
-                  disabled={secondsLeft === 0}
-                >
-                  Submit answer
-                </Button>
-              )}
+              <p className="notice notice--info">
+                <ShieldCheck size={15} style={{ color: 'var(--success)', flex: 'none' }} aria-hidden="true" />
+                <span>This helps protect your account from automated access.</span>
+              </p>
 
-              <div
-                className="row"
-                style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}
-              >
-                <p className="row" style={{ gap: 8, fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
-                  <ShieldCheck size={15} style={{ color: 'var(--success)', flex: 'none' }} aria-hidden="true" />
-                  Security check ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â helps protect your account from automated access.
-                </p>
-
-                <Button variant="ghost" onClick={handleNewCode} disabled={refreshing}>
-                  <RefreshCcw size={15} aria-hidden="true" />
-                  New code
-                </Button>
-              </div>
+              <p className="rewardbanner">
+                <GemMark size={20} />
+                <span>Complete verification to earn<br /><b>+1 Gem</b></span>
+              </p>
             </div>
           </motion.section>
         )}
       </AnimatePresence>
+
+      <FeatureStrip />
     </div>
   );
 }

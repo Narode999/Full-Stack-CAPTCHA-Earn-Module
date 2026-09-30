@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowRight, Check, X, ShieldCheck, TrendingUp } from 'lucide-react';
 import GemMark from '../components/GemMark.jsx';
+import BackButton from '../components/BackButton.jsx';
 import { Button, CountUp, Metric, PageHead, SectionHead, Stagger, Loading } from '../components/ui.jsx';
 import { api } from '../lib/api.js';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -136,6 +137,8 @@ export default function Dashboard() {
 
   return (
     <div className="stack" style={{ gap: 'var(--s-6)' }}>
+
+      <BackButton to="/earn" />
       <PageHead
         label="Overview"
         title={greeting() + ', ' + firstName}

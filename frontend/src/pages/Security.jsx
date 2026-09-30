@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Ban, AlertTriangle, ShieldCheck, Radio, RefreshCcw, Fingerprint } from 'lucide-react';
 import GemMark from '../components/GemMark.jsx';
+import BackButton from '../components/BackButton.jsx';
 import { PageHead, SectionHead, Loading } from '../components/ui.jsx';
 import { api } from '../lib/api.js';
 
@@ -57,6 +58,8 @@ export default function Security() {
 
   return (
     <div className="stack" style={{ gap: 'var(--s-6)' }}>
+
+      <BackButton to="/dashboard" />
       <PageHead
         label="Security"
         title="Security status"
@@ -99,12 +102,12 @@ export default function Security() {
                 ? new Date(stats.lastVerificationAt).toLocaleTimeString(undefined, {
                     hour: '2-digit', minute: '2-digit'
                   })
-                : '—'}
+                : 'â€”'}
             </p>
           </div>
           <div className="readout__item">
             <p className="label">Login activity</p>
-            <p className="readout__val">{stats ? stats.successfulLogins : '—'}</p>
+            <p className="readout__val">{stats ? stats.successfulLogins : 'â€”'}</p>
           </div>
           <div className="readout__item">
             <p className="label">Suspicious activity</p>
@@ -130,25 +133,25 @@ export default function Security() {
       <div className="grid grid--4">
         <div className="metric">
           <span className="metric__value" style={{ color: 'var(--danger)' }}>
-            {stats ? blocked : '—'}
+            {stats ? blocked : 'â€”'}
           </span>
           <span className="metric__foot">Attacks blocked</span>
         </div>
         <div className="metric">
           <span className="metric__value metric__value--gold">
-            {stats ? stats.invalidPayloads + stats.replaysBlocked : '—'}
+            {stats ? stats.invalidPayloads + stats.replaysBlocked : 'â€”'}
           </span>
           <span className="metric__foot">Cheats rejected</span>
         </div>
         <div className="metric">
           <span className="metric__value metric__value--green">
-            {stats ? Number(stats.gemsEarned).toFixed(1) : '—'}
+            {stats ? Number(stats.gemsEarned).toFixed(1) : 'â€”'}
           </span>
           <span className="metric__foot">Gems earned</span>
         </div>
         <div className="metric">
           <span className="metric__value metric__value--purple">
-            {stats ? stats.expiredChallenges : '—'}
+            {stats ? stats.expiredChallenges : 'â€”'}
           </span>
           <span className="metric__foot">Expired challenges</span>
         </div>
@@ -210,7 +213,7 @@ export default function Security() {
 
       <p className="notice notice--green">
         <Fingerprint size={16} style={{ color: 'var(--success)', flex: 'none' }} aria-hidden="true" />
-        <span>Scoped to your account — it never shows another user&apos;s activity, and never a correct answer.</span>
+        <span>Scoped to your account â€” it never shows another user&apos;s activity, and never a correct answer.</span>
       </p>
     </div>
   );

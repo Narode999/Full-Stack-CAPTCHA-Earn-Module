@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Check, X, ShieldCheck } from 'lucide-react';
 import GemMark from '../components/GemMark.jsx';
+import BackButton from '../components/BackButton.jsx';
 import { PageHead, SectionHead, Loading } from '../components/ui.jsx';
 import { api } from '../lib/api.js';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -51,7 +52,7 @@ function clockTime(value) {
 /**
  * Reward activity timeline.
  *
- * GET /api/captcha/history — every row is server-supplied. `correctOption` is
+ * GET /api/captcha/history â€” every row is server-supplied. `correctOption` is
  * never selected by that endpoint, and no reward arithmetic happens here.
  */
 export default function History() {
@@ -117,6 +118,8 @@ export default function History() {
 
   return (
     <div className="stack" style={{ gap: 'var(--s-6)' }}>
+
+      <BackButton to="/dashboard" />
       <PageHead
         label="Activity"
         title="Reward activity"
@@ -205,7 +208,7 @@ export default function History() {
                             {ok ? 'Security verification' : 'Verification attempt'}
                           </span>
                           <span className="timeline__meta">
-                            {clockTime(entry.completedAt || entry.createdAt)} ·{' '}
+                            {clockTime(entry.completedAt || entry.createdAt)} Â·{' '}
                             {statusLabel(entry.rewardStatus)}
                           </span>
                         </span>
@@ -230,7 +233,7 @@ export default function History() {
           style={{ color: 'var(--success)', flex: 'none' }}
           aria-hidden="true"
         />
-        <span>Correct answers are never shown here — they stay on the server.</span>
+        <span>Correct answers are never shown here â€” they stay on the server.</span>
       </p>
     </div>
   );
