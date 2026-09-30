@@ -167,6 +167,32 @@ export function Loading({ label = 'Loading…' }) {
   );
 }
 
+/**
+ * Reward burst — the single loud moment in the whole product.
+ *
+ * It plays exactly once per successful claim and nothing else. Each element is
+ * a plain span driven by CSS keyframes rather than per-particle JavaScript, so
+ * the animation costs one reflow-free compositor pass instead of a rAF loop.
+ *
+ * The parent re-mounts it by changing `key`, which restarts the animations.
+ */
+export function RewardBurst({ show }) {
+  const reduce = useReducedMotion();
+  if (!show || reduce) return null;
+
+  return (
+    <div className="burst" aria-hidden="true">
+      <span className="burst__glow" />
+      <span className="burst__ring" />
+      <span className="burst__ring" style={{ animationDelay: '90ms' }} />
+      <span className="burst__ring" style={{ animationDelay: '180ms' }} />
+      {Array.from({ length: 8 }, (_, i) => (
+        <span key={i} className="burst__spark" style={{ '--a': i * 45 + 'deg' }} />
+      ))}
+    </div>
+  );
+}
+
 /* -------------------------------------------------------------------------
    Stagger — one place for the shared entrance transition so pages do not
    each invent their own timing.

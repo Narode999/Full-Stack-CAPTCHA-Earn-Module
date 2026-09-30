@@ -1,6 +1,8 @@
 import { NavLink, useLocation } from 'react-router-dom';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { LayoutGrid, Zap, History as HistoryIcon, ShieldCheck, LogOut } from 'lucide-react';
 import GemMark from './GemMark.jsx';
+import CinematicBackdrop from './CinematicBackdrop.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useWallet } from '../context/WalletContext.jsx';
 import { CountUp } from './ui.jsx';
@@ -51,6 +53,7 @@ export default function AppShell({ children }) {
   const { user, logout } = useAuth();
   const { balance } = useWallet();
   const { pathname } = useLocation();
+  const reduce = useReducedMotion();
 
   const name = user ? user.name : 'there';
 
@@ -59,6 +62,8 @@ export default function AppShell({ children }) {
       <a className="skip-link" href="#main">
         Skip to content
       </a>
+
+      <CinematicBackdrop />
 
       {/* --- Desktop rail ------------------------------------------------- */}
       <aside className="rail">
@@ -115,8 +120,20 @@ export default function AppShell({ children }) {
           </span>
         </header>
 
-        <main id="main" className="main" key={pathname}>
-          {children}
+        <main id="main" className="main">
+          {/* Short crossfade between routes. Kept well under 250ms so it reads
+              as continuity rather than as a transition you wait for. */}
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={pathname}
+              initial={reduce ? { opacity: 0 } : { opacity: 0, y: 10, filter: 'blur(6px)' }}
+              animate={reduce ? { opacity: 1 } : { opacity: 1, y: 0, filter: 'blur(0px)' }}
+              exit={reduce ? { opacity: 0 } : { opacity: 0, y: -6, filter: 'blur(5px)' }}
+              transition={{ duration: reduce ? 0.12 : 0.22, ease: [0.22, 1, 0.36, 1] }}
+            >
+              {children}
+            </motion.div>
+          </AnimatePresence>
         </main>
       </div>
 

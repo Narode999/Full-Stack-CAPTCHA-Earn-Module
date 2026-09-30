@@ -2,7 +2,7 @@ import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Check, X, ArrowRight, ShieldCheck, RefreshCcw, Lock, AlertCircle } from 'lucide-react';
 import GemMark from '../components/GemMark.jsx';
-import { Button, CountUp, PageHead } from '../components/ui.jsx';
+import { Button, CountUp, PageHead, RewardBurst } from '../components/ui.jsx';
 import { api, ApiError } from '../lib/api.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useWallet } from '../context/WalletContext.jsx';
@@ -39,6 +39,7 @@ export default function CaptchaEarn() {
   const [refreshing, setRefreshing] = useState(false);
   const [claiming, setClaiming] = useState(false);
   const [claimStep, setClaimStep] = useState('idle');
+  const [burstKey, setBurstKey] = useState(0);
   const scanTimer = useRef(null);
 
   const loadChallenge = useCallback(
@@ -140,6 +141,7 @@ export default function CaptchaEarn() {
         newBalance: data.newBalance
       }));
       const balanceNow = Number(data.newBalance);
+      setBurstKey(prev => prev + 1);
       setBalance(balanceNow);
       setAuthBalance(balanceNow);
     } catch (err) {
@@ -262,6 +264,8 @@ export default function CaptchaEarn() {
             role="status"
             aria-live="polite"
           >
+            <RewardBurst key={burstKey} show={burstKey > 0 && isClaimed} />
+
             <motion.div
               className="result__mark"
               initial={{ scale: 0.7, opacity: 0 }}
@@ -314,8 +318,8 @@ export default function CaptchaEarn() {
                   >
                     {claiming
                       ? claimStep === 'preparing'
-                        ? 'Preparingâ€¦'
-                        : 'Creditingâ€¦'
+                        ? 'PreparingÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦'
+                        : 'CreditingÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦'
                       : isClaimed
                         ? 'Added to balance'
                         : 'Add to balance'}
@@ -361,7 +365,7 @@ export default function CaptchaEarn() {
                 </div>
 
                 <p className="code" aria-label={'Challenge code ' + (challenge ? challenge.captchaText : '')}>
-                  {(challenge ? challenge.captchaText : 'Â·Â·Â·Â·Â·Â·')
+                  {(challenge ? challenge.captchaText : 'Ãƒâ€šÃ‚Â·Ãƒâ€šÃ‚Â·Ãƒâ€šÃ‚Â·Ãƒâ€šÃ‚Â·Ãƒâ€šÃ‚Â·Ãƒâ€šÃ‚Â·')
                     .split('')
                     .map((char, i) => (
                       <span
@@ -440,7 +444,7 @@ export default function CaptchaEarn() {
               >
                 <p className="row" style={{ gap: 8, fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
                   <ShieldCheck size={15} style={{ color: 'var(--success)', flex: 'none' }} aria-hidden="true" />
-                  Security check â€” helps protect your account from automated access.
+                  Security check ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â helps protect your account from automated access.
                 </p>
 
                 <Button variant="ghost" onClick={handleNewCode} disabled={refreshing}>

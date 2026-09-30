@@ -259,7 +259,161 @@
   color: #9deccb;
 }
 
+/* ==========================================================================
+   Cinematic backdrop — ambient depth, deliberately understated.
+   Everything here is non-interactive, pointer-events: none, and sits behind
+   the app content at z-index 0.
+   ========================================================================== */
+
+.cine {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* One soft key light, top centre. Deliberately not a big purple gradient. */
+.cine__wash {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 60% 42% at 50% -6%,
+    rgba(124, 108, 255, 0.1),
+    transparent 68%
+  );
+}
+
+.cine__gem {
+  position: absolute;
+  display: block;
+  line-height: 0;
+  transform: translate3d(var(--px, 0), var(--py, 0), 0);
+  animation-name: cine-drift;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  will-change: transform;
+}
+
+@keyframes cine-drift {
+  0% {
+    transform: translate3d(var(--px, 0), var(--py, 0), 0) translateY(0) rotate(0deg);
+  }
+  33% {
+    transform: translate3d(var(--px, 0), var(--py, 0), 0) translateY(-18px) rotate(2deg);
+  }
+  66% {
+    transform: translate3d(var(--px, 0), var(--py, 0), 0) translateY(10px) rotate(-1.5deg);
+  }
+  100% {
+    transform: translate3d(var(--px, 0), var(--py, 0), 0) translateY(0) rotate(0deg);
+  }
+}
+
+/* Keeps the edges from feeling like a wallpaper. */
+.cine__vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 78% 64% at 50% 46%,
+    transparent 40%,
+    rgba(8, 10, 18, 0.55) 100%
+  );
+}
+
+/* ==========================================================================
+   Reward burst — the one loud moment, and only on a successful claim.
+   ========================================================================== */
+
+.burst {
+  position: absolute;
+  left: 50%;
+  top: 38%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.burst__ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  margin: -6px 0 0 -6px;
+  border: 1px solid rgba(244, 201, 93, 0.55);
+  border-radius: 50%;
+  animation: burst-ring 620ms var(--ease) forwards;
+}
+
+.burst__spark {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 5px;
+  height: 5px;
+  margin: -2.5px 0 0 -2.5px;
+  border-radius: 1px;
+  background: var(--gold);
+  transform-origin: center;
+  animation: burst-spark 620ms var(--ease) forwards;
+}
+
+.burst__glow {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 220px;
+  height: 220px;
+  margin: -110px 0 0 -110px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(244, 201, 93, 0.3), transparent 62%);
+  animation: burst-glow 620ms var(--ease) forwards;
+}
+
+@keyframes burst-ring {
+  from {
+    transform: scale(1);
+    opacity: 0.85;
+  }
+  to {
+    transform: scale(26);
+    opacity: 0;
+  }
+}
+
+@keyframes burst-glow {
+  from {
+    transform: scale(0.4);
+    opacity: 0.9;
+  }
+  to {
+    transform: scale(1.3);
+    opacity: 0;
+  }
+}
+
+/* Eight rays, evenly fanned. Rotated via a CSS variable set per child. */
+@keyframes burst-spark {
+  0% {
+    transform: rotate(var(--a)) translateX(8px) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(var(--a)) translateX(96px) scale(0.3);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cine {
+    display: none;
+  }
+}
+
 /* --- Loading / empty ----------------------------------------------------- */
+
 
 .spinner {
   width: 18px;
