@@ -58,7 +58,7 @@ function FeatureStrip() {
  * All reward values come from the server response.
  */
 export default function CaptchaEarn() {
-  const { token, setBalance: setAuthBalance } = useAuth();
+  const { token } = useAuth();
   const { balance, setBalance } = useWallet();
   const reduceMotion = useReducedMotion();
 
@@ -184,7 +184,6 @@ export default function CaptchaEarn() {
       }));
       const balanceNow = Number(data.newBalance);
       setBalance(balanceNow);
-      setAuthBalance(balanceNow);
       setBurstKey(prev => prev + 1);
     } catch (err) {
       setError(err.message);
@@ -334,7 +333,7 @@ export default function CaptchaEarn() {
             <div className="result__actions">
               <Button variant="success" size="lg" onClick={handleClaim} disabled={claiming || isClaimed}>
                 {claiming
-                  ? claimStep === 'preparing' ? 'Preparing…' : 'Crediting…'
+                  ? claimStep === 'preparing' ? 'Preparingâ€¦' : 'Creditingâ€¦'
                   : isClaimed ? 'Added to balance' : 'Add to Balance'}
               </Button>
               <Button variant="ghost" onClick={handleDecline} disabled={claiming || isClaimed}>
@@ -362,7 +361,7 @@ export default function CaptchaEarn() {
             <div className="panel__body stack" style={{ gap: 'var(--s-4)' }}>
               <div className="codepanel">
                 <p className="codepanel__chars" aria-label={'Challenge code ' + (challenge ? challenge.captchaText : '')}>
-                  {(challenge ? challenge.captchaText : '······')
+                  {(challenge ? challenge.captchaText : 'Â·Â·Â·Â·Â·Â·')
                     .split('')
                     .map((char, i) => (
                       <span key={char + '-' + i} className="code__char" style={{ animationDelay: i * 40 + 'ms' }}>
@@ -380,7 +379,7 @@ export default function CaptchaEarn() {
               </div>
 
               <p className="selectlabel">
-                {selected ? 'Verifying your selection…' : 'Select the matching code'}
+                {selected ? 'Verifying your selectionâ€¦' : 'Select the matching code'}
               </p>
 
               <div className="options" role="group" aria-label="Challenge options">

@@ -291,6 +291,7 @@ tests 20 | pass 20 | fail 0
 | `docs/SECURITY.md` | Threat model, the 11 controls, and the two bugs that shaped the design |
 | `docs/TESTING.md` | Every test explained, plus manual verification steps |
 | `docs/DATABASE.md` | Schemas, indexes, the state machine, legacy-index fix |
+| `docs/SCALING.md` | **Section 96** — how this scales to 100,000 attempts/day without double-paying, replaying, or inconsistent balances |
 | `postman/VELOop-Captcha.postman_collection.json` | Full flow + 12 negative tests, variables auto-captured |
 
 ---

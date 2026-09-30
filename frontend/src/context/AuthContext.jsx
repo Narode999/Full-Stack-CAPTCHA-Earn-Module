@@ -5,12 +5,23 @@ const STORAGE_KEY = 'veloop-auth';
 
 const AuthContext = createContext(null);
 
+/**
+ * Only the token and the user profile are persisted.
+ *
+ * The gem balance is deliberately NOT stored here (spec section 43). If it
+ * were, a user could edit one value in devtools and the UI would render a
+ * balance the server never agreed to. The balance is always read from
+ * `GET /api/wallet/gems`, which the WalletContext owns.
+ */
 function readStoredSession() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    return parsed && parsed.token ? parsed : null;
+    if (!parsed || !parsed.token) return null;
+    // Rebuild the shape defensively so an older payload that still carries a
+    // cached balance cannot leak back into the app on the next write.
+    return { token: parsed.token, user: parsed.user || null };
   } catch {
     return null;
   }
@@ -26,7 +37,7 @@ export function AuthProvider({ children }) {
   }, [session]);
 
   const persist = useCallback(data => {
-    const next = { token: data.token, user: data.user, balance: data.balance ?? 0 };
+    const next = { token: data.token, user: data.user || null };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
     setSession(next);
     return next;
@@ -41,28 +52,17 @@ export function AuthProvider({ children }) {
     setSession(null);
   }, []);
 
-  const setBalance = useCallback(balance => {
-    setSession(prev => {
-      if (!prev) return prev;
-      const next = { ...prev, balance };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-      return next;
-    });
-  }, []);
-
   const value = useMemo(
     () => ({
       token: session ? session.token : null,
       user: session ? session.user : null,
-      balance: session ? session.balance : 0,
       isAuthenticated: Boolean(session && session.token),
       booting,
       login,
       register,
-      logout,
-      setBalance
+      logout
     }),
-    [session, booting, login, register, logout, setBalance]
+    [session, booting, login, register, logout]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -75,3 +75,4 @@ export function useAuth() {
   }
   return context;
 }
+
