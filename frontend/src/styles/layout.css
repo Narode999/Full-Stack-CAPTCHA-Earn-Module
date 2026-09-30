@@ -8,6 +8,11 @@
   display: grid;
   grid-template-columns: 1fr;
   min-height: 100dvh;
+  /* The cinematic backdrop is position:fixed at z-index 0. Without an
+     explicit stacking context here, it would paint ON TOP of the in-flow
+     main column, because positioned elements paint after static ones. */
+  position: relative;
+  z-index: 1;
 }
 
 .shell__main {
