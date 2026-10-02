@@ -146,7 +146,7 @@ refreshing `/history` or `/security` will not 404.
 Render → your service → **Environment** → add:
 
 ```
-ALLOWED_ORIGINS = https://veloop-rewards.vercel.app
+ALLOWED_ORIGINS = https://full-stack-captcha-earn-module-jo6c.vercel.app
 ```
 
 Save; Render redeploys automatically. Without it the API accepts requests

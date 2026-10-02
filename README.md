@@ -16,7 +16,7 @@ paid.
 
 | | |
 | --- | --- |
-| **Frontend** | https://full-stack-captcha-earn-module.vercel.app |
+| **Frontend** | https://full-stack-captcha-earn-module-jo6c.vercel.app |
 | **API** | https://full-stack-captcha-earn-module-2.onrender.com |
 | **API health** | https://full-stack-captcha-earn-module-2.onrender.com/api/health |
 | **Demo login** | `demo@veloop.test` / `Demo@12345` (100 gems) |
